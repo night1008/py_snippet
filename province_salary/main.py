@@ -1,11 +1,13 @@
-
-import math
 from datetime import datetime, timedelta
 import random
+
+import click
 from pony.orm import *
 
 db = Database()
-db.bind(provider='postgres', user='user', password='', host='127.0.0.1', database='employee')
+db.bind(provider='postgres', user='night', password='', host='127.0.0.1', database='employee')
+
+STRPTIMR_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 class SalaryItem(db.Entity):
     gender = Required(bool)
@@ -50,23 +52,50 @@ provinces = [
 ]
 
 def get_random_created_at(start_time, end_time):
-    strptime_format = '%Y-%m-%d %H:%M:%S'
-    _start_time = datetime.strptime(start_time, strptime_format)
-    seconds_diff = int(datetime.strptime(end_time, strptime_format).timestamp() - _start_time.timestamp())
+    _start_time = datetime.strptime(start_time, STRPTIMR_FORMAT)
+    seconds_diff = int(datetime.strptime(end_time, STRPTIMR_FORMAT).timestamp() - _start_time.timestamp())
     return _start_time + timedelta(seconds=random.randint(0, seconds_diff))
 
-if __name__ == '__main__':
-    print('enter __main__')
-    db.generate_mapping(create_tables=True)
+
+@click.command()
+@click.option('--start_time', prompt='start time(%Y-%m-%d %H:%M:%S)', type=str, help='start time of created_at column')
+@click.option('--end_time', prompt='end time(%Y-%m-%d %H:%M:%S)', type=str, help='end time of created_at column')
+@click.option('--min_salary', prompt='min salary', type=int, help='min value of salary column')
+@click.option('--max_salary', prompt='max salary', type=int, help='max value of salary column')
+@click.option('--item_count', default=1, prompt='item count', type=int, help='item count')
+def generate_salary_items(start_time, end_time, min_salary, max_salary, item_count):
+    def print_click_error(text):
+        click.echo(click.style(text, fg='red'))
+
+    try:
+        datetime.strptime(start_time, STRPTIMR_FORMAT) or \
+            datetime.strptime(end_time, STRPTIMR_FORMAT)
+    except ValueError:
+        print_click_error('Error format of start_time or end_time param')
+        return
+    
+    if min_salary >= max_salary:
+        print_click_error('Param min_salary must be smaller than max_salary')
+        return
+    if min_salary < 100 or max_salary < 100:
+        print_click_error('Param min_salary and max_salary must be greater than 100')
+        return
+
     with db_session:
-        for i in range(100):
-            created_at = get_random_created_at('2019-03-12 00:00:00', '2019-03-13 00:00:00')
+        for i in range(item_count):
+            created_at = get_random_created_at(start_time, end_time)
             province = random.choice(provinces)
             gender = random.choice([0, 1])
-            salary = round(random.randint(6000, 15000) / 100) * 100
+            salary = round(random.randint(min_salary, max_salary) / 100) * 100
             item = SalaryItem(salary=salary,
                             gender=gender,
                             province=province,
                             created_at=created_at)
             db.commit()
+
+
+if __name__ == '__main__':
+    print('enter __main__')
+    db.generate_mapping(create_tables=True)
+    generate_salary_items()
            

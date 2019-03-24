@@ -3,6 +3,8 @@ import random
 
 import click
 from pony.orm import *
+from psycopg2.extras import execute_values
+
 
 db = Database()
 db.bind(provider='postgres', user='night', password='', host='127.0.0.1', database='employee')
@@ -82,19 +84,41 @@ def generate_salary_items(start_time, end_time, min_salary, max_salary, item_cou
         print_click_error('Param min_salary and max_salary must be greater than 100')
         return
 
+    # MEMO normal insert
+    # with db_session:
+    #     for _ in range(item_count):
+    #         created_at = get_random_created_at(start_time, end_time)
+    #         created_at_timestamp = int(created_at.timestamp())
+    #         province = random.choice(provinces)
+    #         gender = random.choice([0, 1])
+    #         salary = round(random.randint(min_salary, max_salary) / 100) * 100
+    #         item = SalaryItem(salary=salary,
+    #                         gender=gender,
+    #                         province=province,
+    #                         created_at=created_at,
+    #                         created_at_timestamp=created_at_timestamp)
+    #         db.commit()
+
+    # MEMO bulk insert
+    items = []
+    for _ in range(item_count):
+        created_at = get_random_created_at(start_time, end_time)
+        created_at_timestamp = int(created_at.timestamp())
+        province = random.choice(provinces)
+        gender = bool(random.choice([0, 1]))
+        salary = round(random.randint(min_salary, max_salary) / 100) * 100
+        items.append((salary,
+            gender,
+            province,
+            created_at,
+            created_at_timestamp
+        ))
+    
+    sql = 'insert into SalaryItem(salary, gender, province, created_at, created_at_timestamp) values %s'
     with db_session:
-        for i in range(item_count):
-            created_at = get_random_created_at(start_time, end_time)
-            created_at_timestamp = int(created_at.timestamp())
-            province = random.choice(provinces)
-            gender = random.choice([0, 1])
-            salary = round(random.randint(min_salary, max_salary) / 100) * 100
-            item = SalaryItem(salary=salary,
-                            gender=gender,
-                            province=province,
-                            created_at=created_at,
-                            created_at_timestamp=created_at_timestamp)
-            db.commit()
+        con = db.get_connection()
+        cur = con.cursor()
+        execute_values(cur, sql, items)
 
 
 if __name__ == '__main__':

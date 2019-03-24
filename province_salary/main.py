@@ -1,15 +1,16 @@
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
 
 import click
 from pony.orm import *
 from psycopg2.extras import execute_values
 
-
 db = Database()
-db.bind(provider='postgres', user='night', password='', host='127.0.0.1', database='employee')
+db.bind(provider='postgres', user='night', password='',
+        host='127.0.0.1', database='employee')
 
 STRPTIMR_FORMAT = '%Y-%m-%d %H:%M:%S'
+
 
 class SalaryItem(db.Entity):
     gender = Required(bool)
@@ -17,6 +18,7 @@ class SalaryItem(db.Entity):
     province = Required(str)
     created_at = Required(datetime)
     created_at_timestamp = Required(int)
+
 
 # random.choice(provinces)
 provinces = [
@@ -54,9 +56,11 @@ provinces = [
     '新疆维吾尔自治区',
 ]
 
+
 def get_random_created_at(start_time, end_time):
     _start_time = datetime.strptime(start_time, STRPTIMR_FORMAT)
-    seconds_diff = int(datetime.strptime(end_time, STRPTIMR_FORMAT).timestamp() - _start_time.timestamp())
+    seconds_diff = int(datetime.strptime(
+        end_time, STRPTIMR_FORMAT).timestamp() - _start_time.timestamp())
     return _start_time + timedelta(seconds=random.randint(0, seconds_diff))
 
 
@@ -76,12 +80,13 @@ def generate_salary_items(start_time, end_time, min_salary, max_salary, item_cou
     except ValueError:
         print_click_error('Error format of start_time or end_time param')
         return
-    
+
     if min_salary >= max_salary:
         print_click_error('Param min_salary must be smaller than max_salary')
         return
     if min_salary < 100 or max_salary < 100:
-        print_click_error('Param min_salary and max_salary must be greater than 100')
+        print_click_error(
+            'Param min_salary and max_salary must be greater than 100')
         return
 
     # MEMO normal insert
@@ -108,12 +113,12 @@ def generate_salary_items(start_time, end_time, min_salary, max_salary, item_cou
         gender = bool(random.choice([0, 1]))
         salary = round(random.randint(min_salary, max_salary) / 100) * 100
         items.append((salary,
-            gender,
-            province,
-            created_at,
-            created_at_timestamp
-        ))
-    
+                      gender,
+                      province,
+                      created_at,
+                      created_at_timestamp
+                      ))
+
     sql = 'insert into SalaryItem(salary, gender, province, created_at, created_at_timestamp) values %s'
     with db_session:
         con = db.get_connection()
@@ -125,4 +130,3 @@ if __name__ == '__main__':
     print('enter __main__')
     db.generate_mapping(create_tables=True)
     generate_salary_items()
-           

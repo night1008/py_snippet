@@ -14,6 +14,7 @@ class SalaryItem(db.Entity):
     salary = Required(int)
     province = Required(str)
     created_at = Required(datetime)
+    created_at_timestamp = Required(int)
 
 # random.choice(provinces)
 provinces = [
@@ -84,13 +85,15 @@ def generate_salary_items(start_time, end_time, min_salary, max_salary, item_cou
     with db_session:
         for i in range(item_count):
             created_at = get_random_created_at(start_time, end_time)
+            created_at_timestamp = int(created_at.timestamp())
             province = random.choice(provinces)
             gender = random.choice([0, 1])
             salary = round(random.randint(min_salary, max_salary) / 100) * 100
             item = SalaryItem(salary=salary,
                             gender=gender,
                             province=province,
-                            created_at=created_at)
+                            created_at=created_at,
+                            created_at_timestamp=created_at_timestamp)
             db.commit()
 
 

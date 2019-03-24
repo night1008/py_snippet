@@ -4,3 +4,8 @@
 
 指定日期范围，便可生产此日期范围内的随机数据
 
+```
+cd province_salary
+python main.py
+```
+
